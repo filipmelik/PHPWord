@@ -783,6 +783,43 @@ class TemplateProcessor
     }
 
     /**
+     * @param string $color
+     * @param string $excludeText
+     */
+    public function removeTextHighlightColor($color, $excludeText)
+    {
+        $dom = new \DOMDocument('1.0');
+        $dom->formatOutput = true;
+        $dom->preserveWhiteSpace = false;
+        $dom->loadXml($this->tempDocumentMainPart);
+
+        $xpath = new \DOMXPath($dom);
+        foreach ($xpath->evaluate(sprintf('//w:highlight[@w:val="%s"]', $color)) as $highlightNode) {
+
+            // remove bulleted-list highlight if present
+            if ($highlightNode->parentNode->parentNode->getElementsByTagName('pStyle')->count() > 0) {
+                $attrVal = $highlightNode->parentNode->parentNode->getElementsByTagName('pStyle')->item(0)->getAttribute('w:val');
+                if ($attrVal === 'ListParagraph') {
+                    $highlightNode->parentNode->removeChild($highlightNode);
+                    continue;
+                }
+            }
+
+            // remove text highlight if its not empty or does not contain predefined exclude text
+            $text = $highlightNode->parentNode->parentNode->textContent;
+            $containsExcludeText = mb_strpos($text, $excludeText) !== false;
+            if (empty($text) || $containsExcludeText) {
+                continue;
+            }
+            $highlightNode->parentNode->removeChild($highlightNode);
+        }
+
+        $out = $dom->saveXML($dom);
+
+        $this->tempDocumentMainPart = $out;
+    }
+
+    /**
      * Replace a block.
      *
      * @param string $blockname
