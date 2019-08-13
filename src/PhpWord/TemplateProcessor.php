@@ -84,6 +84,12 @@ class TemplateProcessor
     protected $tempDocumentNewImages = array();
 
     /**
+     * Document settings file contents.
+     * @var string
+     */
+    protected $tempDocumentSettingPart;
+
+    /**
      * @since 0.12.0 Throws CreateTemporaryFileException and CopyFileException instead of Exception
      *
      * @param string $documentTemplate The fully qualified template filename
@@ -120,6 +126,7 @@ class TemplateProcessor
 
         $this->tempDocumentMainPart = $this->readPartWithRels($this->getMainPartName());
         $this->tempDocumentContentTypes = $this->zipClass->getFromName($this->getDocumentContentTypesName());
+        $this->tempDocumentSettingPart = $this->readPartWithRels($this->getSettingsName());
     }
 
     /**
@@ -783,6 +790,29 @@ class TemplateProcessor
     }
 
     /**
+     * Set property in document settings that forces word to update dynamic fields when document is opened.
+     */
+    public function forceUpdateFields()
+    {
+        $dom = new \DOMDocument('1.0');
+        $dom->formatOutput = true;
+        $dom->preserveWhiteSpace = false;
+        $dom->loadXml($this->tempDocumentSettingPart);
+
+        if ($dom->getElementsByTagName('updateFields')->length > 0) {
+            // do not add it if already there
+            return;
+        }
+
+        $settingsNode = $dom->getElementsByTagName('settings')[0];
+        $updateFieldsNode = $dom->createElement("w:updateFields");
+        $settingsNode->appendChild($updateFieldsNode);
+
+        $out = $dom->saveXML($dom);
+        $this->tempDocumentSettingPart = $out;
+    }
+
+    /**
      * @param string $color
      * @param string $excludeText
      */
@@ -866,6 +896,7 @@ class TemplateProcessor
         }
 
         $this->savePartWithRels($this->getMainPartName(), $this->tempDocumentMainPart);
+        $this->savePartWithRels($this->getSettingsName(), $this->tempDocumentSettingPart);
 
         foreach ($this->tempDocumentFooters as $index => $xml) {
             $this->savePartWithRels($this->getFooterName($index), $xml);
@@ -1011,6 +1042,14 @@ class TemplateProcessor
     protected function getFooterName($index)
     {
         return sprintf('word/footer%d.xml', $index);
+    }
+
+    /**
+     * @return string
+     */
+    protected function getSettingsName()
+    {
+        return 'word/settings.xml';
     }
 
     /**
