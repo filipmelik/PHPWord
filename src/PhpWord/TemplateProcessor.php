@@ -813,6 +813,29 @@ class TemplateProcessor
     }
 
     /**
+     * Naive (but working in my case) attempt to remove document watermark. Watermark is hidden under w:pict element in document
+     * headers. This functio nscans all headers and removes all w:pict elements from header XML.
+     */
+    public function removeWatermark()
+    {
+        foreach ($this->tempDocumentHeaders as $headerIndex => &$headerContent) {
+            $dom = new \DOMDocument('1.0');
+            $dom->formatOutput = true;
+            $dom->preserveWhiteSpace = false;
+            $dom->loadXml($headerContent);
+
+            $xpath = new \DOMXPath($dom);
+            foreach ($xpath->evaluate('//w:pict') as $pictureNode) {
+                $pictureNode->parentNode->removeChild($pictureNode);
+            }
+
+            $out = $dom->saveXML($dom);
+
+            $headerContent = $out;
+        }
+    }
+
+    /**
      * @param string $color
      * @param string $excludeText
      */
