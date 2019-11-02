@@ -858,6 +858,13 @@ class TemplateProcessor
                 }
             }
 
+            // remove text highlight in complex fields, but note, it does not ignore exclude text, it removes all highlights
+            // @see http://officeopenxml.com/WPfields.php and search for <w:fldChar>
+            if ($highlightNode->parentNode->parentNode->getElementsByTagName('fldChar')->count() > 0) {
+                $highlightNode->parentNode->removeChild($highlightNode);
+                continue;
+            }
+
             // remove text highlight if its not empty or does not contain predefined exclude text
             $text = $highlightNode->parentNode->parentNode->textContent;
             $containsExcludeText = mb_strpos($text, $excludeText) !== false;
