@@ -814,7 +814,7 @@ class TemplateProcessor
 
     /**
      * Naive (but working in my case) attempt to remove document watermark. Watermark is hidden under w:pict element in document
-     * headers. This functio nscans all headers and removes all w:pict elements from header XML.
+     * headers. This function scans all headers and removes all w:pict elements from header XML.
      */
     public function removeWatermark()
     {
@@ -832,6 +832,38 @@ class TemplateProcessor
             $out = $dom->saveXML($dom);
 
             $headerContent = $out;
+        }
+    }
+
+    /**
+     * Naive (but working in my case) attempt to change document watermark text.
+     * Watermark is hidden under w:pict element in document headers. This function scans all headers and
+     * performs string replacement in header XML.
+     *
+     * @param string $originalWatermarkText NOTE: Case sensitive
+     * @param string $newWatermarkText
+     */
+    public function changeWatermarkText(string $originalWatermarkText, string $newWatermarkText, bool $throw = true)
+    {
+        $searchText = sprintf('string="%s"', $originalWatermarkText);
+        $newText = sprintf('string="%s"', $newWatermarkText);
+        $searchTextFound = false;
+
+        // replace
+        foreach ($this->tempDocumentHeaders as $headerIndex => &$headerContent) {
+            if (mb_strpos($headerContent, $searchText) !== false) {
+                $searchTextFound = true;
+            }
+
+            $headerContent = str_replace($searchText, $newText, $headerContent);
+        }
+        unset($headerContent);
+
+        // pre-check
+        if ($throw && $searchTextFound === false) {
+            throw new \InvalidArgumentException(
+                sprintf('Could not find watermark text %s in the given document', $originalWatermarkText)
+            );
         }
     }
 
