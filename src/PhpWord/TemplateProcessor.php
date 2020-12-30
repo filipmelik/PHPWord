@@ -842,8 +842,9 @@ class TemplateProcessor
      *
      * @param string $originalWatermarkText NOTE: Case sensitive
      * @param string $newWatermarkText
+     * @param bool   $throw
      */
-    public function changeWatermarkText(string $originalWatermarkText, string $newWatermarkText, bool $throw = true)
+    public function changeWatermarkText($originalWatermarkText, $newWatermarkText, $throw = true)
     {
         $searchText = sprintf('string="%s"', $originalWatermarkText);
         $newText = sprintf('string="%s"', $newWatermarkText);
@@ -904,6 +905,31 @@ class TemplateProcessor
                 continue;
             }
             $highlightNode->parentNode->removeChild($highlightNode);
+        }
+
+        $out = $dom->saveXML($dom);
+
+        $this->tempDocumentMainPart = $out;
+    }
+
+    /**
+     * @param string $highlightColor
+     * @param string $textToDeHighlight
+     */
+    public function deHighlightText($highlightColor, $textToDeHighlight)
+    {
+        $dom = new \DOMDocument('1.0');
+        $dom->formatOutput = true;
+        $dom->preserveWhiteSpace = false;
+        $dom->loadXml($this->tempDocumentMainPart);
+
+        $xpath = new \DOMXPath($dom);
+        foreach ($xpath->evaluate(sprintf('//w:highlight[@w:val="%s"]', $highlightColor)) as $highlightNode) {
+            // remove text highlight if its not empty and element text is equal to what we want to de-highlight
+            $text = $highlightNode->parentNode->parentNode->textContent;
+            if (!empty($text) && $text === $textToDeHighlight) {
+                $highlightNode->parentNode->removeChild($highlightNode);
+            }
         }
 
         $out = $dom->saveXML($dom);
